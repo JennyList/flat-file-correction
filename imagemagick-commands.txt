@@ -1,0 +1,21 @@
+Create the calibration image
+
+magick calibration-photo.jpg \
+  -blur 0x60 \
+  -fx 'channel(
+    0.5*u.r/max(u.g,0.02) *
+        u.p{w/2,h/2}.g/max(u.p{w/2,h/2}.r,0.02),
+    0.5,
+    0.5*u.b/max(u.g,0.02) *
+        u.p{w/2,h/2}.g/max(u.p{w/2,h/2}.b,0.02)
+  )' \
+  -depth 16 PNG48:calibration-map.png
+  
+Perform the image processing
+  
+magick unprocessed-image.jpg \
+  -evaluate multiply 0.5 \
+  calibration-map.png \
+  -compose DivideSrc -composite \
+  -quality 95 corrected-image.jpg
+

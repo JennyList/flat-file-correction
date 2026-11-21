@@ -1,0 +1,29 @@
+
+Get one frame
+
+ffmpeg -i calibration-video.mp4 \
+  -vf "tmix=frames=60,format=rgb48be" \
+  -frames:v 1 -update 1 video-calibration-photo.png 
+
+Make map
+
+ffmpeg -i video-calibration-photo.png \
+  -vf "format=gbrp16le,gblur=sigma=60,\
+geq=r='32768*r(X,Y)*g(W/2,H/2)/(max(g(X,Y),1)*max(r(W/2,H/2),1))':\
+g='32768':\
+b='32768*b(X,Y)*g(W/2,H/2)/(max(g(X,Y),1)*max(b(W/2,H/2),1))'" \
+  -frames:v 1 -update 1 -pix_fmt rgb48be video-calibration-map.png
+  
+  
+Correct video
+  
+ffmpeg -i unprocessed-video.mp4 -loop 1 -i video-calibration-map.png \
+  -filter_complex \
+  "[0:v]format=gbrp16le[video];\
+[1:v]format=gbrp16le[map];\
+[video][map]blend=all_expr='A*32768/max(B,1)':shortest=1,\
+format=yuv420p[out]" \
+  -map '[out]' -map '0:a?' \
+  -c:v libx264 -preset medium -crf 18 \
+  -c:a copy corrected-video.mp4
+
